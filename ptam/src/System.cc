@@ -14,6 +14,8 @@
 #include <ptam_com/ptam_info.h>
 #include <opencv/cv.h>
 #include <cvd/vision.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 using namespace CVD;
 using namespace std;
@@ -91,8 +93,22 @@ void System::imageCallback(const sensor_msgs::ImageConstPtr & img)
 {
   //	static ros::Time t = img->header.stamp;
 
+    // change img into gray
+    cv_bridge::CvImagePtr cv_ptr;
+    try
+    {
+      cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
 
-  ROS_ASSERT(img->encoding == sensor_msgs::image_encodings::MONO8 && img->step == img->width);
+
+
+
+  //ROS_ASSERT(img->encoding == sensor_msgs::image_encodings::MONO8 && img->step == img->width);
 
   const VarParams& varParams = PtamParameters::varparams();
 
@@ -121,7 +137,7 @@ void System::imageCallback(const sensor_msgs::ImageConstPtr & img)
 
 //  -------------------
   // TODO: avoid copy, by calling TrackFrame, with the ros image, because there is another copy inside TrackFrame
-  CVD::BasicImage<CVD::byte> img_tmp((CVD::byte *)&img->data[0], CVD::ImageRef(img->width, img->height));
+  CVD::BasicImage<CVD::byte> img_tmp((CVD::byte *)&cv_ptr->image.data[0], CVD::ImageRef(img->width, img->height));
   CVD::copy(img_tmp, img_bw_);
 
   bool tracker_draw = false;

@@ -11,6 +11,8 @@
 #include <cvd/byte.h>
 #include <cvd/rgb.h>
 #include <cvd/utility.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -55,13 +57,25 @@ int main(int argc, char** argv)
 
 void CameraCalibrator::imageCallback(const sensor_msgs::ImageConstPtr & img)
 {
+    // change img into gray
+    cv_bridge::CvImagePtr cv_ptr;
+    try
+    {
+      cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
 
-  ROS_ASSERT(img->encoding == sensor_msgs::image_encodings::MONO8 && img->step == img->width);
+  //ROS_ASSERT(img->encoding == sensor_msgs::image_encodings::MONO8 && img->step == img->width);
+
 
   CVD::ImageRef size(img->width, img->height);
   mCurrentImage.resize(size);
 
-  CVD::BasicImage<CVD::byte> img_tmp((CVD::byte *)&img->data[0], size);
+  CVD::BasicImage<CVD::byte> img_tmp((CVD::byte *)&cv_ptr->image.data[0], size);
   CVD::copy(img_tmp, mCurrentImage);
   mNewImage = true;
 }
